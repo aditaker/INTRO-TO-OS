@@ -2,6 +2,8 @@
 #include<stdlib.h>
 #include<string.h>
 #include <ctype.h> 
+#include<sys/wait.h> 
+#include<unistd.h> 
 #define BUFFER_SIZE 1024
 #define DEPENDENCY_SIZE 16
 
@@ -11,12 +13,13 @@ struct Target{
 	char **dependencyList;
 	char **commandsList;
 	int num_commands;
+	int is_explored;
+	char *color;
 } Target;
 
 struct Node{
 	struct Target *target;
 	struct Node **neighbors;
-	char *color;
 	struct Node* next;
 } Node;
 
@@ -34,20 +37,28 @@ struct Target* parse_file() {
 	while ((read = getline(&line, &len, fp)) != -1) {
 		line_num++;
 		i = 0;
-		while(isblank(line[i])) 
-			i++;
-
 		if(line[i] == '\n')
 			continue;
 
         if(line[0] == tab) {
+        	if(ans->next == NULL) {
+        		fprintf(stderr,"Invalid line %d\n", line_num);
+        		exit(1);
+        	}
         	//command
     		char *str = (char*)malloc(BUFFER_SIZE);
     		strcpy(str, line);
     		while(isblank(str[0]))
     			str++;
+    		char *pos;
+    		if ((pos=strchr(str, '\n')) != NULL)
+    			*pos = '\0';
     		prev->commandsList[prev->num_commands] = str;
     		prev->num_commands++;
+        }
+        else if(line[0] == ' ') {
+        	fprintf(stderr,"Invalid line %d\n", line_num);
+    		exit(1);
         }
         else if( strchr(line, ':') && (ptr = strtok(line, ":")) ) {
         	struct Target* target = (struct Target*)malloc(sizeof(struct Target));
@@ -55,7 +66,10 @@ struct Target* parse_file() {
         	strcpy( target->target_name, ptr); 
         	target->dependencyList = (char**)malloc(sizeof(char*) * DEPENDENCY_SIZE);   
         	target->commandsList = (char**)malloc(sizeof(char*) * BUFFER_SIZE);
+        	target->color = (char*)malloc(BUFFER_SIZE);
         	target->num_commands = 0;
+        	target->is_explored = 0;
+        	target->color = "WHITE";
         	for(int i = 0; i < DEPENDENCY_SIZE; i++)
         		 target->dependencyList[i] = NULL;
     		for(int i = 0; i < BUFFER_SIZE; i++)
@@ -98,7 +112,10 @@ struct Node* createUtil(struct Node *node, struct Target *target_list) {
 			node->neighbors[j] = (struct Node*)malloc(sizeof(struct Node));
 			node->neighbors[j]->target = (struct Target *)malloc(sizeof(struct Target));
 			node->neighbors[j]->target = target_temp;
-			createUtil(node->neighbors[j], target_list);
+			if(target_temp->is_explored == 0) {
+				target_temp->is_explored = 1;
+				createUtil(node->neighbors[j], target_list);
+			}
 			j++;
 		}
 		i++;
@@ -106,14 +123,56 @@ struct Node* createUtil(struct Node *node, struct Target *target_list) {
 	return node;
 }
 
-void print(struct Node *root) {
-	printf("%s\n",root->target->target_name);
-	int i = 0;
-	while(root->neighbors[i]) {
-		print(root->neighbors[i]);
-		i++;
+
+void executeCommand(char *command) {
+	int pid = fork();
+	if(pid == 0) {
+		char *token;
+		char **argv = (char **)malloc(sizeof(char*)*BUFFER_SIZE);
+		token = strtok(command, " ");
+		int j = 0;
+		while( token != NULL ) {
+			argv[j] = (char *)malloc(BUFFER_SIZE);
+			argv[j++] = token;
+			token = strtok(NULL, " ");
+		}
+		argv[j] = NULL;
+		printf("%s\n",argv[0]);
+		execvp(argv[0], argv);
+		printf("Invalid command\n");
+    	exit(1);
+	}
+	else {
+		wait(NULL);
+		return;
 	}
 }
+
+
+void runBottomUp(struct Node *root) {
+	// printf("%s\n",root->target->target_name);
+	int i = 0;
+	root->target->color = "GRAY";
+	while(root->neighbors[i]) {
+		if(strcmp(root->neighbors[i]->target->color, "GRAY") == 0) {
+			fprintf(stderr,"Error : Circular Dependency\n");
+			exit(1);
+		}
+		if(strcmp(root->neighbors[i]->target->color, "WHITE") == 0)
+			runBottomUp(root->neighbors[i]);
+		i++;
+	}
+	//Execute the commands here
+	root->target->color = "BLACK";
+	int j = 0;
+	while(j < root->target->num_commands) {
+		executeCommand(root->target->commandsList[j]);
+		j++;
+	}
+	
+	// root->target
+}
+
 
 void createGraphFromTargets(char *target_arg) {
 	struct Target *target_list;
@@ -130,7 +189,7 @@ void createGraphFromTargets(char *target_arg) {
 	node->target = (struct Target *)malloc(sizeof(struct Target));
 	node->target = target;
 	struct Node *root = createUtil(node, target_list);
-	print(root);
+	runBottomUp(root);
 }
 
 

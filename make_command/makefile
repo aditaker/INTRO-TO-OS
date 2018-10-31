@@ -1,18 +1,17 @@
 all: main.o options_processing.o process_list.o proc_files_parser.o
-	$(CC) -o $(EXE) main.o options_processing.o process_list.o proc_files_parser.o
-	rm *.o
+	echo "Hello World 1"
 
 main.o: main.c options_processing.h process_list.h proc_files_parser.h
-	$(CC) $(WARNING_FLAGS) -c main.c
+	echo "Hello World 2"
 
-options_procssing.o: options_processing.c options_processing.h
-	$(CC) $(WARNING_FLAGS) -c options_processing.c
+options_processing.o: options_processing.c options_processing.h process_list.o
+	echo "Hello World 3"
 
-process_list.o: process_list.c process_list.h
-	$(CC) $(WARNING_FLAGS) -c process_list.c
+process_list.o: process_list.c process_list.h options_processing.o
+	echo "Hello World 4"
 
 proc_files_parser.o: proc_files_parser.c proc_files_parser.h
-	$(CC) $(WARNING_FLAGS) -c proc_files_parser.c
+	echo "Hello World 5"
 
 clean:
-	rm $(EXE) *.o
+	echo "Hello World"
