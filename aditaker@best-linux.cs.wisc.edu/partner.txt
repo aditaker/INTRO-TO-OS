@@ -1,0 +1,3 @@
+student,full name (as in Canvas),Net ID,CS ID,wisc email (not CS email),campus ID number
+1,Aditya Rungta,arungta,aditaker,arungta@wisc.edu,9079875507
+2,Nachiket Kshatriya,nkshatriya,nachiket,nkshatriya@wisc.edu,9079995693

@@ -2,6 +2,13 @@ CC = gcc
 WARNING_FLAGS = -Wall -Wextra -pedantic
 EXE = 537ps
 
+x: y t
+
+y: 
+	echo 'HELLO'
+
+t: y
+
 all: main.o options_processing.o process_list.o proc_files_parser.o
 	$(CC) -o $(EXE) main.o options_processing.o process_list.o proc_files_parser.o
 	rm *.o
