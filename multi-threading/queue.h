@@ -1,14 +1,33 @@
-#include <semaphore.h>
-#include <stdlib.h>
-#define QSIZE 1
+#ifndef QUEUE_H
+#define QUEUE_H
 
-typedef struct queue {
+#include <stdio.h>
+#include <stdlib.h>
+#include <semaphore.h>
+
+extern const int QSIZE;
+
+typedef struct Queue {
     char **arr;
-    int f, r;
+    int front, rear;
 	int enqueueCount, dequeueCount, enqueueBlockCount, dequeueBlockCount;
     sem_t full, empty;
-} queue;
+} Queue;
 
-void init(queue *q);
-void enqueue(queue *q, char *c);
-char *dequeue(queue * q);
+typedef struct TwoQueues {
+	Queue *qLeft, *qRight;
+} TwoQueues;
+
+//Creates a queue for storing strings
+Queue *CreateStringQueue(int);
+
+//Enqueues a string to the queue
+void EnqueueString(Queue *, char *);
+
+//Dequeues a string from the queue
+char *DequeueString(Queue *);
+
+//Prints all queue stats
+void PrintQueueStats(Queue *);
+
+#endif
